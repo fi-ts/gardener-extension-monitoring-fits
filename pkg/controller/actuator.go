@@ -134,7 +134,7 @@ static_configs:
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "fits-am-confg",
-				Namespace: "",
+				Namespace: namespace,
 				Labels: map[string]string{
 					"release": "prometheus",
 				},
@@ -169,7 +169,7 @@ static_configs:
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "fits-am-relabel-confg",
-				Namespace: "",
+				Namespace: namespace,
 				Labels: map[string]string{
 					"release": "prometheus",
 				},
