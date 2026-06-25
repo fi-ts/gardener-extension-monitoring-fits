@@ -11,7 +11,7 @@ import (
 )
 
 // ExtensionName is the name of the extension.
-const ExtensionName = "extension-fits-monitoring-fits"
+const ExtensionName = "extension-fits-monitoring"
 
 // Options holds configuration passed to the registry service controller.
 type Options struct {
@@ -37,7 +37,7 @@ func NewOptions() *Options {
 
 	webhookSwitches := monitoringcmd.WebhookSwitchOptions()
 	webhookOptions := webhookcmd.NewAddToManagerOptions(
-		"fits-monitoring-fits",
+		"fits-monitoring",
 		"",
 		nil,
 		webhookServerOptions,
