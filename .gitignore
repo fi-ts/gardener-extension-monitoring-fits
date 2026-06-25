@@ -6,5 +6,4 @@ helm
 .vscode
 hack/tools/bin/*
 bin
-gardener-extension-monitoring-fits
 .ci/
