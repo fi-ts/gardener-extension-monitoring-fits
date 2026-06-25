@@ -190,3 +190,4 @@ kubectl get secrets -n shoot--<project>--<shoot> | grep fits-am
 ## License
 
 See LICENSE file for details.
+# gardener-extension-monitoring-fits
