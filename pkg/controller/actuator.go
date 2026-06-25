@@ -117,11 +117,11 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 	if alertmanagerConfig != nil {
 		// Create alertmanager config secret
 		alertmanagerConfigYAML := fmt.Sprintf(`- basic_auth:
-  password: %s
-  username: %s
-path_prefix: %s
-scheme: %s
-static_configs:
+    password: %s
+    username: %s
+  path_prefix: %s
+  scheme: %s
+  static_configs:
   - targets:
     - %s`,
 			alertmanagerConfig.Password,
