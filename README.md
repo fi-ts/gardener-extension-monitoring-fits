@@ -14,7 +14,7 @@ This extension automatically configures Prometheus in every shoot cluster to for
 
 - **Automatic Alertmanager Integration**: Seamlessly integrates external Alertmanager with shoot Prometheus instances
 - **Dynamic Configuration**: Alertmanager credentials and URL are configurable via ComponentConfig
-- **Custom Prometheus Rules**: Deploy custom PrometheusRule resources to shoot namespaces
+- **Custom Prometheus Rules**: Deploy custom PrometheusRules resources to shoot namespaces
 - **Label Transformation**: Applies FITS-specific alert relabeling rules
 - **Secret Management**: Automatically creates required secrets in shoot namespaces
 
@@ -31,7 +31,7 @@ The extension is configured via the Extension object in the Garden cluster. All 
 | `config.alertmanager.password` | Basic auth password | `your-password` |
 | `config.alertmanager.pathPrefix` | API path prefix | `/` |
 | `config.alertmanager.scheme` | HTTP scheme | `https` |
-| `config.prometheusRule.spec` | Custom PrometheusRule spec (YAML) | See example below |
+| `config.PrometheusRules.spec` | Custom PrometheusRules spec (YAML) | See example below |
 | `image.repository` | Extension image repository | `ghcr.io/fi-ts/gardener-extension-monitoring-fits` |
 | `image.tag` | Extension image tag | `v0.1.0` |
 | `imageVectorOverwrite` | Image vector configuration for webhooks | See example above |
@@ -76,7 +76,7 @@ spec:
             password: your-password-here
             pathPrefix: /
             scheme: https
-          prometheusRule:
+          PrometheusRules:
             spec: |
               groups:
               - name: coredns-custom.rules
@@ -127,16 +127,16 @@ The extension creates two secrets in the seed cluster's shoot namespace:
 
 These secrets are created using `managedresources.CreateForSeed()` and are automatically synchronized to the shoot namespace.
 
-### 2. Custom PrometheusRule Deployment
+### 2. Custom PrometheusRules Deployment
 
-When `config.prometheusRule.spec` is configured, the extension creates a PrometheusRule resource in the shoot namespace:
+When `config.PrometheusRules.spec` is configured, the extension creates a PrometheusRules resource in the shoot namespace:
 
 - **Name**: `shoot-fits-custom`
 - **Namespace**: Shoot namespace
 - **Labels**: `prometheus: shoot` (ensures it's picked up by the shoot's Prometheus)
 - **Spec**: The custom alert rules provided in the configuration
 
-The PrometheusRule is deployed via managed resources and automatically synchronized to the shoot namespace, where it's picked up by the Prometheus instance.
+The PrometheusRules is deployed via managed resources and automatically synchronized to the shoot namespace, where it's picked up by the Prometheus instance.
 
 ### 3. Prometheus Mutation
 
@@ -220,18 +220,18 @@ Check if the secrets exist:
 kubectl get secrets -n shoot--<project>--<shoot> | grep fits-am
 ```
 
-### Custom PrometheusRule Not Applied
+### Custom PrometheusRules Not Applied
 
-Check if the PrometheusRule exists in the shoot namespace:
+Check if the PrometheusRules exists in the shoot namespace:
 
 ```bash
-kubectl get prometheusrule shoot-fits-custom -n shoot--<project>--<shoot> -o yaml
+kubectl get PrometheusRules shoot-fits-custom -n shoot--<project>--<shoot> -o yaml
 ```
 
 Verify the rule groups are correctly configured:
 
 ```bash
-kubectl get prometheusrule shoot-fits-custom -n shoot--<project>--<shoot> -o jsonpath='{.spec.groups[*].name}'
+kubectl get PrometheusRules shoot-fits-custom -n shoot--<project>--<shoot> -o jsonpath='{.spec.groups[*].name}'
 ```
 
 Check Prometheus logs for rule loading errors:

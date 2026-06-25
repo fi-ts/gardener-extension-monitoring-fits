@@ -76,7 +76,7 @@ func (a *actuator) Migrate(ctx context.Context, log logr.Logger, ex *extensionsv
 }
 
 func (a *actuator) createResources(ctx context.Context, log logr.Logger, cluster *controller.Cluster, namespace string) error {
-	seedObjects, err := seedObjects(&a.config, cluster, namespace, a.config.Alertmanager, a.config.PrometheusRule)
+	seedObjects, err := seedObjects(&a.config, cluster, namespace, a.config.Alertmanager, a.config.PrometheusRules)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (a *actuator) deleteResources(ctx context.Context, log logr.Logger, namespa
 	return nil
 }
 
-func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster, namespace string, alertmanagerConfig *config.AlertmanagerConfig, prometheusRuleConfig *config.PrometheusRuleConfig) ([]client.Object, error) {
+func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster, namespace string, alertmanagerConfig *config.AlertmanagerConfig, prometheusRulesConfig *config.PrometheusRulesConfig) ([]client.Object, error) {
 	objects := []client.Object{}
 
 	// Add alertmanager secrets if configured
@@ -183,10 +183,10 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 		})
 	}
 
-	// Add custom PrometheusRule if configured
-	if prometheusRuleConfig != nil {
+	// Add custom PrometheusRules if configured
+	if prometheusRulesConfig != nil {
 		// Create PrometheusRule resource
-		prometheusRule := &unstructured.Unstructured{
+		prometheusRules := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "monitoring.coreos.com/v1",
 				"kind":       "PrometheusRule",
@@ -203,12 +203,31 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 
 		// Parse the YAML spec and set it in the PrometheusRule
 		var spec map[string]interface{}
-		if err := yaml.Unmarshal([]byte(prometheusRuleConfig.Spec), &spec); err != nil {
-			return nil, fmt.Errorf("failed to parse PrometheusRule spec: %w", err)
+		if err := yaml.Unmarshal([]byte(prometheusRulesConfig.Spec), &spec); err != nil {
+			return nil, fmt.Errorf("failed to parse PrometheusRules spec: %w", err)
 		}
-		prometheusRule.Object["spec"] = spec
+		prometheusRules.Object["spec"] = spec
 
-		objects = append(objects, prometheusRule)
+		objects = append(objects, prometheusRules)
+	} else {
+		// If no PrometheusRules is configured, create an empty PrometheusRule to ensure the resource exists
+		prometheusRules := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "monitoring.coreos.com/v1",
+				"kind":       "PrometheusRule",
+				"metadata": map[string]interface{}{
+					"name":      "shoot-fits-custom",
+					"namespace": namespace,
+					"labels": map[string]interface{}{
+						"prometheus": "shoot",
+					},
+				},
+				"spec": map[string]interface{}{
+					"groups": []interface{}{},
+				},
+			},
+		}
+		objects = append(objects, prometheusRules)
 	}
 
 	return objects, nil
