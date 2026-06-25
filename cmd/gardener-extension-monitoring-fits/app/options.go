@@ -24,6 +24,7 @@ type Options struct {
 	controllerSwitches *controllercmd.SwitchOptions
 	webhookOptions     *webhookcmd.AddToManagerOptions
 	reconcileOptions   *controllercmd.ReconcilerOptions
+	monitoringOptions  *monitoringcmd.MonitoringOptions
 	optionAggregator   controllercmd.OptionAggregator
 }
 
@@ -69,6 +70,7 @@ func NewOptions() *Options {
 		controllerSwitches: monitoringcmd.ControllerSwitchOptions(),
 		reconcileOptions:   &controllercmd.ReconcilerOptions{},
 		webhookOptions:     webhookOptions,
+		monitoringOptions:  &monitoringcmd.MonitoringOptions{},
 	}
 
 	options.optionAggregator = controllercmd.NewOptionAggregator(
@@ -81,6 +83,7 @@ func NewOptions() *Options {
 		options.controllerSwitches,
 		options.reconcileOptions,
 		options.webhookOptions,
+		options.monitoringOptions,
 	)
 
 	return options
