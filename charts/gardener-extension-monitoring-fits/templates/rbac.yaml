@@ -6,7 +6,6 @@ metadata:
   labels:
 {{ include "labels" . | indent 4 }}
 rules:
-rules:
 - apiGroups:
   - extensions.gardener.cloud
   resources:
@@ -41,6 +40,19 @@ rules:
   - resources.gardener.cloud
   resources:
   - managedresources
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheus
+  - prometheusrules
   verbs:
   - get
   - list

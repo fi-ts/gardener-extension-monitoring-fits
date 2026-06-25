@@ -2,29 +2,23 @@ package controller
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/fi-ts/gardener-extension-monitoring-fits/pkg/apis/config"
 	"github.com/fi-ts/gardener-extension-monitoring-fits/pkg/apis/monitoring/v1alpha1"
-	"github.com/fi-ts/gardener-extension-monitoring-fits/pkg/imagevector"
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -117,162 +111,7 @@ func (a *actuator) deleteResources(ctx context.Context, log logr.Logger, namespa
 }
 
 func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster, namespace string, alertmanagerConfig *config.AlertmanagerConfig) ([]client.Object, error) {
-	monitoringImage, err := imagevector.ImageVector().FindImage("monitoring-fits-webhook")
-	if err != nil {
-		return nil, fmt.Errorf("failed to find monitoring-fits-webhook image: %w", err)
-	}
-
-	replicas := func(replicas int32) *int32 {
-		if controller.IsHibernated(cluster) {
-			return pointer.Pointer(int32(0))
-		}
-		return &replicas
-	}
-
-	webhookDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "monitoring-fits-webhook",
-			Namespace: namespace,
-			Labels: map[string]string{
-				"k8s-app": "monitoring-fits-webhook",
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: replicas(2),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"k8s-app": "monitoring-fits-webhook",
-				},
-			},
-			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxUnavailable: &intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: 0,
-					},
-					MaxSurge: &intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: 1,
-					},
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"k8s-app": "monitoring-fits-webhook",
-						"app":     "monitoring-fits-webhook",
-						"networking.gardener.cloud/from-prometheus":      "allowed",
-						"networking.gardener.cloud/from-shoot-apiserver": "allowed",
-						"networking.gardener.cloud/to-dns":               "allowed",
-						"networking.gardener.cloud/to-public-networks":   "allowed",
-					},
-					Annotations: map[string]string{
-						"scheduler.alpha.kubernetes.io/critical-pod": "",
-						"prometheus.io/scrape":                       "true",
-						"prometheus.io/path":                         "/metrics",
-						"prometheus.io/port":                         "2112",
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:            "kubernetes-monitoring-fits-webhook",
-							Image:           monitoringImage.String(),
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 8443,
-									Protocol:      corev1.ProtocolTCP,
-								},
-								{
-									Name:          "monitoring",
-									ContainerPort: 2112,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "LISTEN",
-									Value: ":8443",
-								},
-								{
-									Name:  "CLUSTER",
-									Value: cluster.Shoot.Name,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	objects := []client.Object{
-		webhookDeployment,
-		&policyv1.PodDisruptionBudget{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      webhookDeployment.Name,
-				Namespace: webhookDeployment.Namespace,
-			},
-			Spec: policyv1.PodDisruptionBudgetSpec{
-				MinAvailable: &intstr.IntOrString{
-					Type:   intstr.Int,
-					IntVal: 1,
-				},
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"k8s-app": "monitoring-fits-webhook",
-					},
-				},
-			},
-		},
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "monitoring-fits-webhook",
-				Namespace: namespace,
-				Labels: map[string]string{
-					"app": "monitoring-fits-webhook",
-				},
-			},
-			Spec: corev1.ServiceSpec{
-				Selector: map[string]string{
-					"app": "monitoring-fits-webhook",
-				},
-				Ports: []corev1.ServicePort{
-					{
-						Port:       8443,
-						TargetPort: intstr.FromInt(8443),
-					},
-				},
-			},
-		},
-	}
-
-	if cc.ImagePullSecret != nil && cc.ImagePullSecret.DockerConfigJSON != "" {
-		content, err := base64.StdEncoding.DecodeString(cc.ImagePullSecret.DockerConfigJSON)
-		if err != nil {
-			return nil, fmt.Errorf("unable to decode image pull secret: %w", err)
-		}
-
-		objects = append(objects, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "monitoring-fits-webhook-registry-credentials",
-				Namespace: namespace,
-				Labels: map[string]string{
-					"app": "monitoring-fits-webhook-registry-credentials",
-				},
-			},
-			Type: corev1.SecretTypeDockerConfigJson,
-			Data: map[string][]byte{
-				".dockerconfigjson": content,
-			},
-		})
-
-		webhookDeployment.Spec.Template.Spec.ImagePullSecrets = append(webhookDeployment.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{
-			Name: "monitoring-fits-webhook-registry-credentials",
-		})
-	}
+	objects := []client.Object{}
 
 	// Add alertmanager secrets if configured
 	if alertmanagerConfig != nil {
