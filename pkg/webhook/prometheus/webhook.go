@@ -26,7 +26,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Name:     "prometheus",
 		Provider: "",
 		Types:    types,
-		Target:   extensionswebhook.TargetShoot,
+		Target:   extensionswebhook.TargetSeed,
 		Path:     "prometheus",
 		Webhook:  &admission.Webhook{Handler: handler},
 	}
