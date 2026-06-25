@@ -25,6 +25,11 @@ data:
       pathPrefix: {{ .Values.config.alertmanager.pathPrefix }}
       scheme: {{ .Values.config.alertmanager.scheme }}
 
+{{- if .Values.config.prometheusRules.spec }}
+    prometheusRules:
+{{ toYaml .Values.config.prometheusRules | nindent 6 }}
+{{- end }}
+
 {{- if .Values.config.imagePullSecret.encodedDockerConfigJSON }}
     imagePullSecret:
       encodedDockerConfigJSON: {{ .Values.config.imagePullSecret.encodedDockerConfigJSON }}
