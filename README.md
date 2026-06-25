@@ -14,6 +14,7 @@ This extension automatically configures Prometheus in every shoot cluster to for
 
 - **Automatic Alertmanager Integration**: Seamlessly integrates external Alertmanager with shoot Prometheus instances
 - **Dynamic Configuration**: Alertmanager credentials and URL are configurable via ComponentConfig
+- **Custom Prometheus Rules**: Deploy custom PrometheusRule resources to shoot namespaces
 - **Label Transformation**: Applies FITS-specific alert relabeling rules
 - **Secret Management**: Automatically creates required secrets in shoot namespaces
 
@@ -30,6 +31,7 @@ The extension is configured via the Extension object in the Garden cluster. All 
 | `config.alertmanager.password` | Basic auth password | `your-password` |
 | `config.alertmanager.pathPrefix` | API path prefix | `/` |
 | `config.alertmanager.scheme` | HTTP scheme | `https` |
+| `config.prometheusRule.spec` | Custom PrometheusRule spec (YAML) | See example below |
 | `image.repository` | Extension image repository | `ghcr.io/fi-ts/gardener-extension-monitoring-fits` |
 | `image.tag` | Extension image tag | `v0.1.0` |
 | `imageVectorOverwrite` | Image vector configuration for webhooks | See example above |
@@ -74,6 +76,26 @@ spec:
             password: your-password-here
             pathPrefix: /
             scheme: https
+          prometheusRule:
+            spec: |
+              groups:
+              - name: coredns-custom.rules
+                rules:
+                - alert: CoreDNSHighServfailRate
+                  expr: |
+                    (
+                      rate(coredns_dns_responses_total{rcode="SERVFAIL"}[5m])
+                      /
+                      rate(coredns_dns_responses_total[5m])
+                    ) > 0.05
+                  for: 2m
+                  labels:
+                    severity: critical
+                    type: shoot
+                    service: coredns
+                    visibility: all
+                  annotations:
+                    summary: "CoreDNS SERVFAIL rate above 5% for 2 minutes"
         image:
           pullPolicy: Always
           repository: ghcr.io/fi-ts/gardener-extension-monitoring-fits
@@ -105,7 +127,18 @@ The extension creates two secrets in the seed cluster's shoot namespace:
 
 These secrets are created using `managedresources.CreateForSeed()` and are automatically synchronized to the shoot namespace.
 
-### 2. Prometheus Mutation
+### 2. Custom PrometheusRule Deployment
+
+When `config.prometheusRule.spec` is configured, the extension creates a PrometheusRule resource in the shoot namespace:
+
+- **Name**: `shoot-fits-custom`
+- **Namespace**: Shoot namespace
+- **Labels**: `prometheus: shoot` (ensures it's picked up by the shoot's Prometheus)
+- **Spec**: The custom alert rules provided in the configuration
+
+The PrometheusRule is deployed via managed resources and automatically synchronized to the shoot namespace, where it's picked up by the Prometheus instance.
+
+### 3. Prometheus Mutation
 
 A webhook mutates all Prometheus objects in shoot namespaces to include:
 
@@ -119,7 +152,7 @@ spec:
     name: fits-am-relabel-confg
 ```
 
-### 3. Alert Relabeling
+### 4. Alert Relabeling
 
 The extension applies FITS-specific label transformations:
 
@@ -185,6 +218,26 @@ Check if the secrets exist:
 
 ```bash
 kubectl get secrets -n shoot--<project>--<shoot> | grep fits-am
+```
+
+### Custom PrometheusRule Not Applied
+
+Check if the PrometheusRule exists in the shoot namespace:
+
+```bash
+kubectl get prometheusrule shoot-fits-custom -n shoot--<project>--<shoot> -o yaml
+```
+
+Verify the rule groups are correctly configured:
+
+```bash
+kubectl get prometheusrule shoot-fits-custom -n shoot--<project>--<shoot> -o jsonpath='{.spec.groups[*].name}'
+```
+
+Check Prometheus logs for rule loading errors:
+
+```bash
+kubectl logs -n shoot--<project>--<shoot> -l app=prometheus
 ```
 
 ## License

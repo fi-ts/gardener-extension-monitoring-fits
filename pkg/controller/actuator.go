@@ -13,10 +13,12 @@ import (
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +76,7 @@ func (a *actuator) Migrate(ctx context.Context, log logr.Logger, ex *extensionsv
 }
 
 func (a *actuator) createResources(ctx context.Context, log logr.Logger, cluster *controller.Cluster, namespace string) error {
-	seedObjects, err := seedObjects(&a.config, cluster, namespace, a.config.Alertmanager)
+	seedObjects, err := seedObjects(&a.config, cluster, namespace, a.config.Alertmanager, a.config.PrometheusRule)
 	if err != nil {
 		return err
 	}
@@ -110,7 +112,7 @@ func (a *actuator) deleteResources(ctx context.Context, log logr.Logger, namespa
 	return nil
 }
 
-func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster, namespace string, alertmanagerConfig *config.AlertmanagerConfig) ([]client.Object, error) {
+func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster, namespace string, alertmanagerConfig *config.AlertmanagerConfig, prometheusRuleConfig *config.PrometheusRuleConfig) ([]client.Object, error) {
 	objects := []client.Object{}
 
 	// Add alertmanager secrets if configured
@@ -179,6 +181,34 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 				"additional-alert-relabel-configs.yaml": []byte(alertRelabelConfigYAML),
 			},
 		})
+	}
+
+	// Add custom PrometheusRule if configured
+	if prometheusRuleConfig != nil {
+		// Create PrometheusRule resource
+		prometheusRule := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "monitoring.coreos.com/v1",
+				"kind":       "PrometheusRule",
+				"metadata": map[string]interface{}{
+					"name":      "shoot-fits-custom",
+					"namespace": namespace,
+					"labels": map[string]interface{}{
+						"prometheus": "shoot",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		}
+
+		// Parse the YAML spec and set it in the PrometheusRule
+		var spec map[string]interface{}
+		if err := yaml.Unmarshal([]byte(prometheusRuleConfig.Spec), &spec); err != nil {
+			return nil, fmt.Errorf("failed to parse PrometheusRule spec: %w", err)
+		}
+		prometheusRule.Object["spec"] = spec
+
+		objects = append(objects, prometheusRule)
 	}
 
 	return objects, nil
