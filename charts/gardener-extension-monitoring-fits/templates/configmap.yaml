@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     ---
-    apiVersion: authn.fits.extensions.config.gardener.cloud/v1alpha1
+    apiVersion: monitoring-fits.fits.extensions.config.gardener.cloud/v1alpha1
     kind: ControllerConfiguration
 {{- if .Values.config.clientConnection }}
     clientConnection:
