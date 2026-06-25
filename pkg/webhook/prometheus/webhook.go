@@ -3,6 +3,7 @@ package prometheus
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -29,6 +30,16 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Target:   extensionswebhook.TargetSeed,
 		Path:     "prometheus",
 		Webhook:  &admission.Webhook{Handler: handler},
+	}
+
+	// Only mutate Prometheus objects with specific labels
+	webhook.ObjectSelector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app":                                 "prometheus",
+			"name":                                "shoot",
+			"resources.gardener.cloud/managed-by": "gardener",
+			"role":                                "monitoring",
+		},
 	}
 
 	return webhook, nil
