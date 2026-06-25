@@ -81,5 +81,11 @@ func (e *ensurer) EnsurePrometheus(new, _ *monitoringv1.Prometheus) error {
 		e.logger.Info("added additionalAlertRelabelConfigs to Prometheus")
 	}
 
+	// Add networking label if not already present
+	if _, exists := new.Spec.PodMetadata.Labels["networking.gardener.cloud/to-public-networks"]; !exists {
+		new.Spec.PodMetadata.Labels["networking.gardener.cloud/to-public-networks"] = "allowed"
+		e.logger.Info("added networking.gardener.cloud/to-public-networks label to Prometheus podMetadata")
+	}
+
 	return nil
 }
