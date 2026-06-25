@@ -1,0 +1,37 @@
+apiVersion: operator.gardener.cloud/v1alpha1
+kind: Extension
+metadata:
+  name: fits-monitoring
+spec:
+  deployment:
+    extension:
+      helm:
+        ociRepository:
+          ref: ghcr.io/fi-ts/charts/gardener-extension-monitoring-fits:v0.1.0
+      policy: Always
+      values:
+        config:
+          alertmanager:
+            url: alerts.example.com:443
+            username: admin
+            password: your-password-here
+            pathPrefix: /
+            scheme: https
+        image:
+          pullPolicy: Always
+          repository: ghcr.io/fi-ts/gardener-extension-monitoring-fits
+          tag: v0.1.0
+        imageVectorOverwrite: |
+          images:
+          - name: monitoring-fits-webhook
+            sourceRepository: git.f-i-ts.de/cloud-native/monitoring/monitoring-fits-webhook
+            repository: r.metal-stack.io/extensions/monitoring-fits-webhook
+            tag: v0.1.0
+  resources:
+  - autoEnable:
+    - shoot
+    clusterCompatibility:
+    - shoot
+    kind: Extension
+    primary: true
+    type: fits-monitoring

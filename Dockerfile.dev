@@ -1,0 +1,3 @@
+FROM alpine:3.21
+COPY bin/gardener-extension-monitoring-fits /gardener-extension-monitoring-fits
+CMD ["/gardener-extension-monitoring-fits"]

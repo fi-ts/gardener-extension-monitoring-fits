@@ -1,0 +1,11 @@
+apiVersion: core.gardener.cloud/v1beta1
+kind: ControllerRegistration
+metadata:
+  name: fits-monitoring
+spec:
+  deployment:
+    policy: Always
+  resources:
+  - kind: Extension
+    type: fits-monitoring
+    globallyEnabled: true
