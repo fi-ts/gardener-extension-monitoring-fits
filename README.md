@@ -123,10 +123,10 @@ spec:
 
 The extension applies FITS-specific label transformations:
 
-- Replaces `mc_tool_rule` with `PROMO.FITS.NATIVECLUSTER.KUBERNETES.5`
+- Replaces `mc_tool_rule` with `PROM.FITS.NATIVECLUSTER.KUBERNETES.5`
 - Replaces `tenant` with `CN`
 - Drops `prometheus` and `endpoint` labels
-- Sets `severity` to `critical` for `KubJobFailed` alerts
+- Sets `severity` to `critical` for `KubeJobFailed` alerts
 
 ## Development
 

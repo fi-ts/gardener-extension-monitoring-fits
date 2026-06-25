@@ -116,7 +116,7 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 	// Add alertmanager secrets if configured
 	if alertmanagerConfig != nil {
 		// Create alertmanager config secret
-		alertmanagerConfigYAML := fmt.Sprintf(`basic_auth:
+		alertmanagerConfigYAML := fmt.Sprintf(`- basic_auth:
   password: %s
   username: %s
 path_prefix: %s
@@ -147,7 +147,7 @@ static_configs:
 
 		// Create alert relabel config secret (static)
 		alertRelabelConfigYAML := `- regex: ()
-  replacement: PROMO.FITS.NATIVECLUSTER.KUBERNETES.5
+  replacement: PROM.FITS.NATIVECLUSTER.KUBERNETES.5
   source_labels:
   - mc_tool_rule
   target_label: mc_tool_rule
@@ -160,7 +160,7 @@ static_configs:
   regex: prometheus
 - action: labeldrop
   regex: endpoint
-- regex: KubJobFailed
+- regex: KubeJobFailed
   replacement: critical
   source_labels:
   - alertname
