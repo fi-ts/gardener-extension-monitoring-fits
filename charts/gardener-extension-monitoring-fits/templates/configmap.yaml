@@ -18,11 +18,12 @@ data:
       burst: {{ required ".Values.config.clientConnection.burst is required" .Values.config.clientConnection.burst }}
 {{- end }}
 
-    auth:
-      providerTenant: {{ .Values.config.auth.providerTenant }}
-      metalURL: {{ .Values.config.auth.metalURL }}
-      metalHMAC: {{ .Values.config.auth.metalHMAC }}
-      metalAuthType: {{ .Values.config.auth.metalAuthType }}
+    alertmanager:
+      url: {{ .Values.config.alertmanager.url }}
+      username: {{ .Values.config.alertmanager.username }}
+      password: {{ .Values.config.alertmanager.password }}
+      pathPrefix: {{ .Values.config.alertmanager.pathPrefix }}
+      scheme: {{ .Values.config.alertmanager.scheme }}
 
 {{- if .Values.config.imagePullSecret.encodedDockerConfigJSON }}
     imagePullSecret:

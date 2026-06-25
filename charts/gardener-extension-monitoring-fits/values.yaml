@@ -38,12 +38,12 @@ config:
     contentType: application/json
     qps: 100
     burst: 130
-  auth:
-    providerTenant: provider-tenant
-    metalURL: ""
-    metalHMAC: ""
-    metalAuthType: "Metal-View"
-
+  alertmanager:
+    url: alerts.example.com:443
+    username: admin
+    password: your-password-here
+    pathPrefix: /
+    scheme: https
   imagePullSecret:
     encodedDockerConfigJSON:
 
