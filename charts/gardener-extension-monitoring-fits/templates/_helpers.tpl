@@ -1,5 +1,5 @@
 {{- define "name" -}}
-gardener-extension-fits-authn
+gardener-extension-fits-monitoring
 {{- end -}}
 
 {{- define "labels.app.key" -}}

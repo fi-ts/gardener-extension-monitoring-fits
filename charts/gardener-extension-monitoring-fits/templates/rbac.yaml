@@ -91,7 +91,7 @@ rules:
   resources:
   - leases
   resourceNames:
-  - extension-fits-authn-leader-election
+  - extension-fits-monitoring-leader-election
   verbs:
   - update
   - get
