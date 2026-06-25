@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -81,6 +82,10 @@ func (o *Options) run(ctx context.Context) error {
 
 	if err := install.AddToScheme(mgr.GetScheme()); err != nil {
 		return fmt.Errorf("could not update manager scheme: %w", err)
+	}
+
+	if err := monitoringv1.AddToScheme(mgr.GetScheme()); err != nil {
+		return fmt.Errorf("could not add prometheus-operator monitoring APIs to manager scheme: %w", err)
 	}
 
 	log := mgr.GetLogger()
