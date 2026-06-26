@@ -45,7 +45,10 @@ func (e *ensurer) Handle(ctx context.Context, req admission.Request) admission.R
 	// list secrets in the same namespace as the Prometheus object
 	e.logger.Info("checking for AlertmanagerConfigSecret", "name", v1alpha1.AlertmanagerConfigSecretName, "namespace", prometheus.Namespace)
 	list := corev1.SecretList{}
-	e.client.List(ctx, &list, client.InNamespace(prometheus.Namespace))
+	if err := e.client.List(ctx, &list, client.InNamespace(prometheus.Namespace)); err != nil {
+		e.logger.Error(err, "failed to list secrets", "namespace", prometheus.Namespace)
+		return admission.Errored(1, err)
+	}
 	e.logger.Info("found secrets", "count", len(list.Items), "secrets", list.Items)
 
 	if e.client.Get(ctx, client.ObjectKey{Name: v1alpha1.AlertmanagerConfigSecretName, Namespace: prometheus.Namespace}, nil) != nil {
