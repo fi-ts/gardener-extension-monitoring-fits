@@ -7,6 +7,8 @@ import (
 const (
 	SeedMonitoringResourceName = "extension-fits-monitoring"
 	ShootMonitoringResourceName = "extension-fits-monitoring-shoot"
+	AlertmanagerConfigSecretName = "fits-am-confg"
+	AlertRelabelConfigSecretName = "fits-am-relabel-confg"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

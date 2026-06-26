@@ -20,6 +20,9 @@ type ControllerConfiguration struct {
 
 	// Alertmanager is the configuration for external Alertmanager integration
 	Alertmanager *AlertmanagerConfig
+
+	// PrometheusRules is the configuration for custom PrometheusRules
+	PrometheusRules *PrometheusRulesConfig
 }
 
 // ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
@@ -40,4 +43,10 @@ type AlertmanagerConfig struct {
 	PathPrefix string
 	// Scheme (http/https)
 	Scheme string
+}
+
+// PrometheusRulesConfig contains the configuration for custom PrometheusRules.
+type PrometheusRulesConfig struct {
+	// Spec is the raw YAML content of the PrometheusRules spec
+	Spec string
 }

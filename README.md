@@ -14,6 +14,7 @@ This extension automatically configures Prometheus in every shoot cluster to for
 
 - **Automatic Alertmanager Integration**: Seamlessly integrates external Alertmanager with shoot Prometheus instances
 - **Dynamic Configuration**: Alertmanager credentials and URL are configurable via ComponentConfig
+- **Custom Prometheus Rules**: Deploy custom PrometheusRules resources to shoot namespaces
 - **Label Transformation**: Applies FITS-specific alert relabeling rules
 - **Secret Management**: Automatically creates required secrets in shoot namespaces
 
@@ -24,12 +25,13 @@ The extension is configured via the Extension object in the Garden cluster. All 
 ### Configuration Parameters
 
 | Parameter | Description | Example |
-|-----------|-------------|---------|
+| ----------- | ------------- | --------- |
 | `config.alertmanager.url` | Alertmanager URL (host:port) | `alerts.example.com:443` |
 | `config.alertmanager.username` | Basic auth username | `admin` |
 | `config.alertmanager.password` | Basic auth password | `your-password` |
 | `config.alertmanager.pathPrefix` | API path prefix | `/` |
 | `config.alertmanager.scheme` | HTTP scheme | `https` |
+| `config.PrometheusRules.spec` | Custom PrometheusRules spec (YAML) | See example below |
 | `image.repository` | Extension image repository | `ghcr.io/fi-ts/gardener-extension-monitoring-fits` |
 | `image.tag` | Extension image tag | `v0.1.0` |
 | `imageVectorOverwrite` | Image vector configuration for webhooks | See example above |
@@ -45,6 +47,7 @@ kubectl apply -f example/extension.yaml
 ```
 
 The Extension object contains all necessary configuration including:
+
 - Alertmanager credentials and URL
 - Image repository and tag
 - Image vector overwrites
@@ -74,16 +77,30 @@ spec:
             password: your-password-here
             pathPrefix: /
             scheme: https
+          PrometheusRules:
+            spec: |
+              groups:
+              - name: coredns-custom.rules
+                rules:
+                - alert: CoreDNSHighServfailRate
+                  expr: |
+                    (
+                      rate(coredns_dns_responses_total{rcode="SERVFAIL"}[5m])
+                      /
+                      rate(coredns_dns_responses_total[5m])
+                    ) > 0.05
+                  for: 2m
+                  labels:
+                    severity: critical
+                    type: shoot
+                    service: coredns
+                    visibility: all
+                  annotations:
+                    summary: "CoreDNS SERVFAIL rate above 5% for 2 minutes"
         image:
           pullPolicy: Always
           repository: ghcr.io/fi-ts/gardener-extension-monitoring-fits
           tag: v0.1.0
-        imageVectorOverwrite: |
-          images:
-          - name: monitoring-fits-webhook
-            sourceRepository: git.f-i-ts.de/cloud-native/monitoring/monitoring-fits-webhook
-            repository: r.metal-stack.io/extensions/monitoring-fits-webhook
-            tag: v0.1.0
   resources:
   - autoEnable:
     - shoot
@@ -105,7 +122,18 @@ The extension creates two secrets in the seed cluster's shoot namespace:
 
 These secrets are created using `managedresources.CreateForSeed()` and are automatically synchronized to the shoot namespace.
 
-### 2. Prometheus Mutation
+### 2. Custom PrometheusRules Deployment
+
+When `config.PrometheusRules.spec` is configured, the extension creates a PrometheusRules resource in the shoot namespace:
+
+- **Name**: `shoot-fits-custom`
+- **Namespace**: Shoot namespace
+- **Labels**: `prometheus: shoot` (ensures it's picked up by the shoot's Prometheus)
+- **Spec**: The custom alert rules provided in the configuration
+
+The PrometheusRules is deployed via managed resources and automatically synchronized to the shoot namespace, where it's picked up by the Prometheus instance.
+
+### 3. Prometheus Mutation
 
 A webhook mutates all Prometheus objects in shoot namespaces to include:
 
@@ -119,7 +147,7 @@ spec:
     name: fits-am-relabel-confg
 ```
 
-### 3. Alert Relabeling
+### 4. Alert Relabeling
 
 The extension applies FITS-specific label transformations:
 
@@ -153,41 +181,3 @@ make test
 ```bash
 make docker-image
 ```
-
-## Security Considerations
-
-⚠️ **Important**: The Alertmanager password is stored in plain text in the ComponentConfig. For production environments:
-
-- Use Kubernetes Secrets for credential storage
-- Implement RBAC restrictions for ConfigMap access
-- Consider using external secret management solutions
-- Rotate credentials regularly
-
-## Troubleshooting
-
-### Extension Not Creating Secrets
-
-Check the extension logs:
-
-```bash
-kubectl logs -n garden -l app=gardener-extension-monitoring-fits
-```
-
-### Prometheus Not Forwarding Alerts
-
-Verify the Prometheus object has the correct configuration:
-
-```bash
-kubectl get prometheus shoot -n shoot--<project>--<shoot> -o yaml
-```
-
-Check if the secrets exist:
-
-```bash
-kubectl get secrets -n shoot--<project>--<shoot> | grep fits-am
-```
-
-## License
-
-See LICENSE file for details.
-# gardener-extension-monitoring-fits

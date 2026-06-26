@@ -44,6 +44,8 @@ config:
     password: your-password-here
     pathPrefix: /
     scheme: https
+  prometheusRules:
+    spec:
   imagePullSecret:
     encodedDockerConfigJSON:
 

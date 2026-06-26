@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/fi-ts/gardener-extension-monitoring-fits/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,6 +43,18 @@ func (e *ensurer) Handle(ctx context.Context, req admission.Request) admission.R
 		return admission.Errored(1, err)
 	}
 
+	// Check if AlertmanagerConfigSecret exists
+	secret := &corev1.Secret{}
+	err := e.client.Get(ctx, client.ObjectKey{Name: v1alpha1.AlertmanagerConfigSecretName, Namespace: prometheus.Namespace}, secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			e.logger.Info("AlertmanagerConfigSecret not found, skipping mutation", "name", v1alpha1.AlertmanagerConfigSecretName, "namespace", prometheus.Namespace)
+			return admission.Allowed("AlertmanagerConfigSecret not found, skipping mutation")
+		}
+		e.logger.Error(err, "failed to get AlertmanagerConfigSecret", "name", v1alpha1.AlertmanagerConfigSecretName, "namespace", prometheus.Namespace)
+		return admission.Errored(1, err)
+	}
+
 	// Apply mutations
 	if err := e.EnsurePrometheus(prometheus, prometheus); err != nil {
 		return admission.Errored(1, err)
@@ -63,7 +77,7 @@ func (e *ensurer) EnsurePrometheus(new, _ *monitoringv1.Prometheus) error {
 	if new.Spec.AdditionalAlertManagerConfigs == nil {
 		new.Spec.AdditionalAlertManagerConfigs = &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: "fits-am-confg",
+				Name: v1alpha1.AlertmanagerConfigSecretName,
 			},
 			Key: "additional-alertmanager-configs.yaml",
 		}
@@ -74,7 +88,7 @@ func (e *ensurer) EnsurePrometheus(new, _ *monitoringv1.Prometheus) error {
 	if new.Spec.AdditionalAlertRelabelConfigs == nil {
 		new.Spec.AdditionalAlertRelabelConfigs = &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: "fits-am-relabel-confg",
+				Name: v1alpha1.AlertRelabelConfigSecretName,
 			},
 			Key: "additional-alert-relabel-configs.yaml",
 		}

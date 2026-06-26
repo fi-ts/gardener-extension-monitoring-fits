@@ -7,3 +7,30 @@ alertmanager:
   password: your-password-here
   pathPrefix: /
   scheme: https
+prometheusRule:
+  spec: |
+    groups:
+    - name: coredns-custom.rules
+      rules:
+      - alert: CoreDNSHighServfailRate
+        expr: |
+          (
+            rate(coredns_dns_responses_total{rcode="SERVFAIL"}[5m])
+            /
+            rate(coredns_dns_responses_total[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          type: shoot
+          service: coredns
+          visibility: all
+        annotations:
+          summary: "CoreDNS SERVFAIL rate above 5% for 2 minutes"
+      - alert: ShootPrometheusHeartbeatMissing
+        expr: absent(probe_success{job="shoot-heartbeat", shoot="my-shoot"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No heartbeat from shoot — DNS or networking may be broken"
