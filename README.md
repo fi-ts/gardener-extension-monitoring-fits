@@ -25,7 +25,7 @@ The extension is configured via the Extension object in the Garden cluster. All 
 ### Configuration Parameters
 
 | Parameter | Description | Example |
-|-----------|-------------|---------|
+| ----------- | ------------- | --------- |
 | `config.alertmanager.url` | Alertmanager URL (host:port) | `alerts.example.com:443` |
 | `config.alertmanager.username` | Basic auth username | `admin` |
 | `config.alertmanager.password` | Basic auth password | `your-password` |
@@ -47,6 +47,7 @@ kubectl apply -f example/extension.yaml
 ```
 
 The Extension object contains all necessary configuration including:
+
 - Alertmanager credentials and URL
 - Image repository and tag
 - Image vector overwrites
@@ -100,12 +101,6 @@ spec:
           pullPolicy: Always
           repository: ghcr.io/fi-ts/gardener-extension-monitoring-fits
           tag: v0.1.0
-        imageVectorOverwrite: |
-          images:
-          - name: monitoring-fits-webhook
-            sourceRepository: git.f-i-ts.de/cloud-native/monitoring/monitoring-fits-webhook
-            repository: r.metal-stack.io/extensions/monitoring-fits-webhook
-            tag: v0.1.0
   resources:
   - autoEnable:
     - shoot
@@ -186,61 +181,3 @@ make test
 ```bash
 make docker-image
 ```
-
-## Security Considerations
-
-⚠️ **Important**: The Alertmanager password is stored in plain text in the ComponentConfig. For production environments:
-
-- Use Kubernetes Secrets for credential storage
-- Implement RBAC restrictions for ConfigMap access
-- Consider using external secret management solutions
-- Rotate credentials regularly
-
-## Troubleshooting
-
-### Extension Not Creating Secrets
-
-Check the extension logs:
-
-```bash
-kubectl logs -n garden -l app=gardener-extension-monitoring-fits
-```
-
-### Prometheus Not Forwarding Alerts
-
-Verify the Prometheus object has the correct configuration:
-
-```bash
-kubectl get prometheus shoot -n shoot--<project>--<shoot> -o yaml
-```
-
-Check if the secrets exist:
-
-```bash
-kubectl get secrets -n shoot--<project>--<shoot> | grep fits-am
-```
-
-### Custom PrometheusRules Not Applied
-
-Check if the PrometheusRules exists in the shoot namespace:
-
-```bash
-kubectl get PrometheusRules shoot-fits-custom -n shoot--<project>--<shoot> -o yaml
-```
-
-Verify the rule groups are correctly configured:
-
-```bash
-kubectl get PrometheusRules shoot-fits-custom -n shoot--<project>--<shoot> -o jsonpath='{.spec.groups[*].name}'
-```
-
-Check Prometheus logs for rule loading errors:
-
-```bash
-kubectl logs -n shoot--<project>--<shoot> -l app=prometheus
-```
-
-## License
-
-See LICENSE file for details.
-# gardener-extension-monitoring-fits
