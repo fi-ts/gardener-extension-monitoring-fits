@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/fi-ts/gardener-extension-monitoring-fits/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +42,11 @@ func (e *ensurer) Handle(ctx context.Context, req admission.Request) admission.R
 		return admission.Errored(1, err)
 	}
 
+	if e.client.Get(ctx, client.ObjectKey{Name: v1alpha1.AlertmanagerConfigSecretName, Namespace: prometheus.Namespace}, nil) != nil {
+		e.logger.Info("AlertmanagerConfigSecret not found, skipping mutation", "name", v1alpha1.AlertmanagerConfigSecretName, "namespace", prometheus.Namespace)
+		return admission.Allowed("AlertmanagerConfigSecret not found, skipping mutation")
+	}
+
 	// Apply mutations
 	if err := e.EnsurePrometheus(prometheus, prometheus); err != nil {
 		return admission.Errored(1, err)
@@ -63,7 +69,7 @@ func (e *ensurer) EnsurePrometheus(new, _ *monitoringv1.Prometheus) error {
 	if new.Spec.AdditionalAlertManagerConfigs == nil {
 		new.Spec.AdditionalAlertManagerConfigs = &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: "fits-am-confg",
+				Name: v1alpha1.AlertmanagerConfigSecretName,
 			},
 			Key: "additional-alertmanager-configs.yaml",
 		}
@@ -74,7 +80,7 @@ func (e *ensurer) EnsurePrometheus(new, _ *monitoringv1.Prometheus) error {
 	if new.Spec.AdditionalAlertRelabelConfigs == nil {
 		new.Spec.AdditionalAlertRelabelConfigs = &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: "fits-am-relabel-confg",
+				Name: v1alpha1.AlertRelabelConfigSecretName,
 			},
 			Key: "additional-alert-relabel-configs.yaml",
 		}

@@ -135,7 +135,7 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "fits-am-confg",
+				Name:      v1alpha1.AlertmanagerConfigSecretName,
 				Namespace: namespace,
 				Labels: map[string]string{
 					"release": "prometheus",
@@ -170,7 +170,7 @@ func seedObjects(cc *config.ControllerConfiguration, cluster *controller.Cluster
 
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "fits-am-relabel-confg",
+				Name:      v1alpha1.AlertRelabelConfigSecretName,
 				Namespace: namespace,
 				Labels: map[string]string{
 					"release": "prometheus",
